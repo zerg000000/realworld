@@ -1,0 +1,2 @@
+{:opinionated.components.db/read {:jdbc-url "jdbc:hsqldb:mem:mymemdb"}
+ :opinionated.components.db/write {:jdbc-url "jdbc:hsqldb:mem:mymemdb"}}

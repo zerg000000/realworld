@@ -1,0 +1,11 @@
+{:duct.profile/base
+ {:duct.core/project-ns opinionated
+  :duct.core/environment :production
+  
+  ; read/write separation is pretty common in production environment
+  :opinionated.components.db/read {:jdbc-url #duct/env "JDBC_READ_URL"}
+  :opinionated.components.db/write {:jdbc-url #duct/env "JDBC_WRITE_URL"}}
+ :duct.profile/dev   #duct/include "dev"
+ :duct.profile/local #duct/include "local"
+ :duct.profile/test  #duct/include "test"
+ :duct.profile/prod  {}}

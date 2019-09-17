@@ -1,0 +1,4 @@
+#!/bin/sh
+
+clj -A:test:repl -m nrepl.cmdline
+
