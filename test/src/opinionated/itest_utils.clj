@@ -3,7 +3,7 @@
             [clojure.java.jdbc :as jdbc]
             [duct.core :as duct]
             [integrant.core :as ig]
-            [opinionated.components.db :as sql]))
+            [duct.database.sql :as sql]))
 
 (def ^:dynamic db nil)
 
@@ -17,7 +17,7 @@
 (defn fixture-with-db-tx [f]
   (let [config (prep-config [:duct.profile/test])
         system (-> config
-                   (ig/init [:opinionated.components.db/write]))
+                   (ig/init [:duct.migrator/ragtime]))
         ds (get system :opinionated.components.db/write)]
     (jdbc/with-db-transaction [conn (:spec ds)]
       (jdbc/db-set-rollback-only! conn)
@@ -26,3 +26,6 @@
 
 (defn q [query]
   (jdbc/query (:spec db) query))
+
+(defn i [table & items]
+  (jdbc/insert-multi! (:spec db) table items))

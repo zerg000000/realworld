@@ -1,9 +1,12 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
         duct/core {:mvn/version "0.7.0"}
+        duct/migrator.ragtime {:mvn/version "0.3.0"}
+        duct/module.logging {:mvn/version "0.4.0"}
         org.clojure/java.jdbc {:mvn/version "0.7.9"}
         hikari-cp {:mvn/version "2.8.0"}
-        org.hsqldb/hsqldb {:mvn/version "2.4.0"}}
+        duct/database.sql {:mvn/version "0.1.0"}
+        org.xerial/sqlite-jdbc {:mvn/version "3.28.0"}}
  :aliases {:repl {:extra-paths ["dev/src" "dev/resources"]
                   :extra-deps {expound {:mvn/version "0.7.2"}
                                integrant/repl {:mvn/version "0.3.1"}

@@ -4,8 +4,23 @@
   
   ; read/write separation is pretty common in production environment
   :opinionated.components.db/read {:jdbc-url #duct/env "JDBC_READ_URL"}
-  :opinionated.components.db/write {:jdbc-url #duct/env "JDBC_WRITE_URL"}}
+  :opinionated.components.db/write {:jdbc-url #duct/env "JDBC_WRITE_URL"}
+  
+  ; for migrating database schema changes
+  :duct.migrator/ragtime
+  {:database   #ig/ref :opinionated.components.db/write
+   :logger     #ig/ref :duct/logger
+   :strategy   :rebase
+   :migrations [#ig/ref :opinionated.migration/create-tables]}
+  
+  [:duct.migrator.ragtime/sql :opinionated.migration/create-tables]
+  {:up ["CREATE TABLE user (id INTEGER PRIMARY KEY, user_secret TEXT);"
+        "CREATE TABLE user_auth (id INTEGER PRIMARY KEY, user_id INTEGER, method INTEGER, ident TEXT);"]
+   :down ["DROP TABLE user_auth"
+          "DROP TABLE user;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"
  :duct.profile/test  #duct/include "test"
- :duct.profile/prod  {}}
+ :duct.profile/prod  {}
+ 
+ :duct.module/logging {}}
