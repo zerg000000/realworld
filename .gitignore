@@ -12,7 +12,8 @@ pom.xml.asc
 /.nrepl-port
 /.dir-locals.el
 /profiles.clj
-/dev/resources/local.edn
+# comment this, to share the local.edn for education purpose
+# /dev/resources/local.edn
 /dev/src/local.clj
 .cpcache
 .eastwood
@@ -25,7 +26,7 @@ yarn.lock
 
 # Sqlite
 
-/db/dev.sqlite
+/dev.sqlite
 
 
 # Intellij

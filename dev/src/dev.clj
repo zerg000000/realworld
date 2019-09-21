@@ -43,25 +43,23 @@
 ; setup integrant repl, so that we can restart REPL
 (integrant.repl/set-prep! #(duct/prep-config (read-config) profiles))
 
-; useful function on your own workbench
+; useful functions on your own workbench
+(defn db []
+  (-> (ig/find-derived-1 system [:opinionated.components.db/write])
+      second
+      :spec))
+
 (defn q 
   "query current db. e.g. (q [\"select top 10 * from table where id = ?\" 1])"
   [query]
-  (jdbc/query
-   (-> (ig/find-derived-1 system [:opinionated.components.db/read])
-       second
-       :spec)
-   query))
+  (jdbc/query (db) query))
 
 (defn i
   "insert record to db"
   [table record]
-  (jdbc/insert! 
-   (-> (ig/find-derived-1 system [:opinionated.components.db/write])
-       second
-       :spec)
-   table record))
+  (jdbc/insert! (db) table record))
 
 (comment
   (reset)
-  (q "CALL sysdate ()"))
+  (i :user {:user_secret "no_secret"})
+  (q "SELECT * from user"))

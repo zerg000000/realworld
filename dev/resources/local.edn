@@ -1,0 +1,2 @@
+{:opinionated.components.db/read {:jdbc-url "jdbc:sqlite:dev.sqlite"}
+ :opinionated.components.db/write {:jdbc-url "jdbc:sqlite:dev.sqlite"}}
