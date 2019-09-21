@@ -2,6 +2,14 @@
  {:duct.core/project-ns opinionated
   :duct.core/environment :production
   
+  ; web server
+  :duct.server.http/aleph
+  {:port    3000
+   :handler #ig/ref :opinionated.components.web/router
+   :raw-stream? true
+   :executor :none}
+  :opinionated.components.web/router {:db #ig/ref :opinionated.components.db/read}
+  
   ; read/write separation is pretty common in production environment
   :opinionated.components.db/read {:jdbc-url #duct/env "JDBC_READ_URL"}
   :opinionated.components.db/write {:jdbc-url #duct/env "JDBC_WRITE_URL"}
@@ -20,7 +28,7 @@
           "DROP TABLE user;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"
- :duct.profile/test  #duct/include "test"
+ ;:duct.profile/test  #duct/include "test"
  :duct.profile/prod  {}
  
  :duct.module/logging {}}

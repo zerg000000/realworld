@@ -13,7 +13,9 @@
    [expound.alpha :as expound]
    #_[com.walmartlabs.lacinia.expound]
    ; useful namespace
-   [clojure.java.jdbc :as jdbc]
+   [next.jdbc :as jdbc]
+   [next.jdbc.sql :as sql]
+   [clojure.datafy :refer [nav datafy]]
    [clojure.java.io :as io]))
 
 ; enable reflection warning, to avoid trivial performance problem
@@ -47,19 +49,20 @@
 (defn db []
   (-> (ig/find-derived-1 system [:opinionated.components.db/write])
       second
-      :spec))
+      :spec
+      :datasource))
 
 (defn q 
   "query current db. e.g. (q [\"select top 10 * from table where id = ?\" 1])"
   [query]
-  (jdbc/query (db) query))
+  (datafy (jdbc/execute! (db) query)))
 
 (defn i
   "insert record to db"
   [table record]
-  (jdbc/insert! (db) table record))
+  (sql/insert! (db) table record))
 
 (comment
   (reset)
-  (i :user {:user_secret "no_secret"})
-  (q "SELECT * from user"))
+  (doseq [jj (range 10000)] (i :user {:user_secret "is_secret"}))
+  (q ["SELECT * from user"]))
