@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This is a unit test runner, which intended to be used by CI
-clojure -J-Dfile.encoding=UTF8 -J-Duser.timezone=UTC -A:test -m kaocha.runner "$@"
+clojure -J-Dfile.encoding=UTF8 -J-Duser.timezone=UTC -A:repl:test -m kaocha.runner "$@"
