@@ -7,6 +7,9 @@
         ; web
         aleph {:mvn/version "0.4.7-alpha5"}
         metosin/reitit {:mvn/version "0.3.9"}
+        ; auth
+        buddy/buddy-hashers {:mvn/version "1.4.0"}
+        buddy/buddy-sign {:mvn/version "3.1.0"}
         ; db & db related
         duct/migrator.ragtime {:mvn/version "0.3.0"}
         seancorfield/next.jdbc {:mvn/version "1.0.7"}

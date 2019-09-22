@@ -5,12 +5,9 @@
 (use-fixtures :once fixture-with-db-tx)
 
 (deftest ig-test
-  (i :user 
-     {:user_secret "1"}
-     {:user_secret "2"})
-  (i :user_auth
-     {:user_id 1 :method 0 :ident "88881234"})
-  (is (= [{:id 1 :user_secret "1"}]
-         (q ["SELECT * FROM user WHERE user_secret = ?" "1"])))
-  (is (= [{:id 1 :user_id 1 :method 0 :ident "88881234"}]
-         (q ["SELECT * FROM user_auth WHERE user_id = ?" 1]))))
+  (i :user
+     [:password :email :username]
+     ["123" "abc@123.d" "howdy"]
+     ["234" "abd@123.d" "diva"])
+  (is (= [#:user{:id 1 :password "123" :email "abc@123.d" :username "howdy" :image nil :bio nil}]
+         (q ["SELECT * FROM user WHERE email = ?" "abc@123.d"]))))

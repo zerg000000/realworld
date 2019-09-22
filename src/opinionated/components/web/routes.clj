@@ -3,34 +3,36 @@
             [jsonista.core :as json]
             [manifold.deferred :as d]
             [manifold.executor :as ex]
-            [next.jdbc :as jdbc]
-            [net.cgrand.xforms :as x]))
+            [opinionated.logic.user :as user]))
 
 (defn ok-fn [user]
   {:status 200
    :body (json/write-value-as-bytes user)})
-
-(defn error-fn [ex]
-  {:status 400
-   :body "Error!"})
-
-(defn new-handler [options]
-  (let [ds (-> options :db :spec :datasource)
-        pool (-> options :executor)
-        xf (map #(select-keys % [:id :user_secret]))
-        plan (jdbc/plan ds ["select * from user limit 10"])]
-    (fn [req]
-      (ex/with-executor pool
-        (-> (d/future-with (ex/wait-pool) (x/into [] xf plan))
-            (d/chain' ok-fn)
-            (d/catch' error-fn))))))
 
 (def status-ok
   {:handler (fn status-ok [req]
               {:status 200
                :body "OK"})})
 
-(defmethod ig/init-key :opinionated.components.web/routes [_ options]
+(defn wrap-json-format [h pool]
+  (let [m (json/object-mapper {:decode-key-fn true})]
+    (fn [req]
+      (d/chain' (d/future-with pool (json/read-value (:body req) m))
+                h))))
+
+(defn wrap-ok-response [h]
+  (fn [req]
+    (d/chain' (h req) ok-fn)))
+
+(defn wrap-error-response [h]
+  (fn [req]
+    (d/catch' (h req)
+              (fn error-handler [error]
+                (prn error)
+                {:status 400
+                 :body "Error!"}))))
+
+(defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [db executor] :as options}]
   ["/api"
    ["/articles" 
     ["" {:get status-ok
@@ -50,8 +52,11 @@
     ["" {:get status-ok}]
     ["/follow" {:post status-ok
                 :delete status-ok}]]
-   ["/user" {:get {:handler (new-handler options)}
+   ["/user" {:get status-ok
              :put status-ok}]
    ["/users"
-    ["" {:post status-ok}]
+    ["" {:post (-> #(d/future-with (ex/wait-pool) (user/register db %))
+                   (wrap-json-format executor)
+                   (wrap-ok-response)
+                   (wrap-error-response))}]
     ["/login" {:post status-ok}]]])

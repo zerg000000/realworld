@@ -1,9 +1,15 @@
 (ns opinionated.itest-utils
   (:require [clojure.java.io :as io]
-            [clojure.java.jdbc :as jdbc]
+            [duct.database.sql]
+            [next.jdbc :as jdbc]
+            [next.jdbc.sql :as sql]
             [duct.core :as duct]
             [integrant.core :as ig]
-            [duct.database.sql :as sql]))
+            [expound.alpha :as expound]
+            [clojure.spec.alpha :as s]
+            [clojure.spec.test.alpha :as st]))
+
+(st/instrument)
 
 (def ^:dynamic db nil)
 
@@ -19,13 +25,13 @@
         system (-> config
                    (ig/init [:duct.migrator/ragtime]))
         ds (get system :opinionated.components.db/write)]
-    (jdbc/with-db-transaction [conn (:spec ds)]
-      (jdbc/db-set-rollback-only! conn)
-      (binding [db (sql/->Boundary conn)] (f)))
+    (jdbc/with-transaction [conn (-> ds :spec :datasource) {:rollback-only true}]
+      (binding [db (duct.database.sql/->Boundary {:datasource conn})] 
+        (f)))
     (ig/halt! system)))
 
 (defn q [query]
-  (jdbc/query (:spec db) query))
+  (jdbc/execute! (-> db :spec :datasource) query))
 
-(defn i [table & items]
-  (jdbc/insert-multi! (:spec db) table items))
+(defn i [table cols & items]
+  (sql/insert-multi! (-> db :spec :datasource) table cols items))

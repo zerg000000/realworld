@@ -7,7 +7,6 @@
   {:port    3000
    :handler #ig/ref :opinionated.components.web/router
    :logger #ig/ref :duct/logger
-   :raw-stream? true
    :executor :none}
   :opinionated.components.web/routes {:db #ig/ref :opinionated.components.db/read
                                       :executor #ig/ref :opinionated.components.executors/execute}
@@ -28,9 +27,9 @@
    :migrations [#ig/ref :opinionated.migration/create-tables]}
   
   [:duct.migrator.ragtime/sql :opinionated.migration/create-tables]
-  {:up ["CREATE TABLE user (id INTEGER PRIMARY KEY, user_secret TEXT);"
-        "CREATE TABLE user_auth (id INTEGER PRIMARY KEY, user_id INTEGER, method INTEGER, ident TEXT);"]
-   :down ["DROP TABLE user_auth"
+  {:up ["CREATE TABLE user (id INTEGER PRIMARY KEY, password TEXT NOT NULL, email TEXT NOT NULL, username TEXT NOT NULL, bio TEXT, image TEXT, UNIQUE (email));"
+        "CREATE TABLE user_following (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, following_user_id, followed_at TIMESTAMP);"]
+   :down ["DROP TABLE user_following;"
           "DROP TABLE user;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"

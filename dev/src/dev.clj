@@ -10,6 +10,7 @@
    [duct.core :as duct]
    ; better error message
    [clojure.spec.alpha :as s]
+   [clojure.spec.test.alpha :as st]
    [expound.alpha :as expound]
    #_[com.walmartlabs.lacinia.expound]
    ; useful namespace
@@ -23,6 +24,8 @@
 
 ; adding a better error message printer
 (set! s/*explain-out* (expound/custom-printer {:show-valid-values? true :print-specs? false :theme :figwheel-theme}))
+; turn on instrumentation
+(st/instrument)
 
 ; only project source should be refreshed, I don't want to reload my dev/*.clj
 ; If I need to reload my dev/*.clj, we can either use 'load-file' or eval in REPL
