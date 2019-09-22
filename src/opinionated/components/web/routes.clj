@@ -25,5 +25,33 @@
             (d/chain' ok-fn)
             (d/catch' error-fn))))))
 
+(def status-ok
+  {:handler (fn status-ok [req]
+              {:status 200
+               :body "OK"})})
+
 (defmethod ig/init-key :opinionated.components.web/routes [_ options]
-  ["/users" {:get {:handler (new-handler options)}}])
+  ["/api"
+   ["/articles" 
+    ["" {:get status-ok
+         :post status-ok}]
+    ["/feed" {:get status-ok}]
+    ["/:slug" 
+     ["" {:get status-ok
+          :put status-ok
+          :delete status-ok}]
+     ["/comments" {:get status-ok
+                   :post status-ok}
+      ["/:id" {:delete status-ok}]]
+     ["/favorite" {:post status-ok
+                   :delete status-ok}]]]
+   ["/tags" {:get status-ok}]
+   ["/profiles/:username" 
+    ["" {:get status-ok}]
+    ["/follow" {:post status-ok
+                :delete status-ok}]]
+   ["/user" {:get {:handler (new-handler options)}
+             :put status-ok}]
+   ["/users"
+    ["" {:post status-ok}]
+    ["/login" {:post status-ok}]]])

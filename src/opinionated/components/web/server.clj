@@ -4,6 +4,7 @@
             [integrant.core :as ig]))
 
 (defmethod ig/init-key :opinionated.components.web/server [_ {:keys [logger handler] :as options}]
+  (logger/log logger :report ::start-server)
   {:logger logger
    :server (aleph/start-server handler (dissoc options :handler :logger))})
 
