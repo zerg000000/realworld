@@ -37,6 +37,12 @@
       (d/chain' (d/future-with pool (json/read-value (:body req) m))
                 h))))
 
+(defn wrap-json-format-req [h pool]
+  (let [m (json/object-mapper {:decode-key-fn true})]
+    (fn json-format [req]
+      (d/chain' (d/future-with pool (update req :body json/read-value m))
+                h))))
+
 (defn wrap-spec-validate [h spec]
   (fn spec-validate [ent]
     (if (s/valid? spec ent)
@@ -71,7 +77,11 @@
                    :delete status-ok}]]]
    ["/tags" {:get status-ok}]
    ["/profiles/:username" 
-    ["" {:get status-ok}]
+    ["" {:get (-> #(d/future-with executor (user/get-user-by-name db (-> % :path-params :username) (-> % :identity :user)))
+                  (wrap-protected)
+                  (wrap-auth (:backend jwt))
+                  (wrap-ok-response)
+                  (wrap-error-response))}]
     ["/follow" {:post status-ok
                 :delete status-ok}]]
    ["/user" {:get (-> #(d/future-with executor (user/get-user db jwt (-> % :identity :user)))
@@ -79,7 +89,14 @@
                       (wrap-auth (:backend jwt))
                       (wrap-ok-response)
                       (wrap-error-response))
-             :put status-ok}]
+             :put (-> (fn [req]
+                        (d/future-with executor (user/update-user db jwt (assoc (:body req)
+                                                                                :id (-> req :identity :user)))))
+                      (wrap-json-format-req executor)
+                      (wrap-protected)
+                      (wrap-auth (:backend jwt))
+                      (wrap-ok-response)
+                      (wrap-error-response))}]
    ["/users"
     ["" {:post (-> #(d/future-with (ex/wait-pool) (user/register db jwt %))
                    (wrap-spec-validate :opinionated.logic.user/register)
