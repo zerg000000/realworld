@@ -9,11 +9,15 @@
    :logger #ig/ref :duct/logger
    :executor :none}
   :opinionated.components.web/routes {:db #ig/ref :opinionated.components.db/read
+                                      :jwt #ig/ref :opinionated.components.auth/backend
                                       :executor #ig/ref :opinionated.components.executors/execute}
   :opinionated.components.web/router {:routes #ig/ref :opinionated.components.web/routes}
   
   ; worker executor
   :opinionated.components.executors/execute {}
+  
+  ; auth
+  :opinionated.components.auth/backend {:secret #duct/env "JWT_SECRET"}
   
   ; read/write separation is pretty common in production environment
   :opinionated.components.db/read {:jdbc-url #duct/env "JDBC_READ_URL"}
