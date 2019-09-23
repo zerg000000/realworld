@@ -62,6 +62,22 @@
                  (select-keys user [:id]))
     {:user (get-full-user conn jwt (:id user))}))
 
+(defn follow-tx [user-id following-username]
+  (fn [conn]
+    (jdbc/execute! conn ["INSERT INTO user_following 
+                          (user_id, following_user_id) 
+                          VALUES (?, (SELECT id FROM user WHERE username = ? LIMIT 1))" 
+                         user-id following-username])
+    (get-full-user-by-name conn following-username user-id)))
+
+(defn unfollow-tx [user-id following-username]
+  (fn [conn]
+    (jdbc/execute! conn ["DELETE FROM user_following 
+                           WHERE user_id = ? 
+                             AND following_user_id in (SELECT id FROM user WHERE username = ?)"
+                         user-id following-username])
+    (get-full-user-by-name conn following-username user-id)))
+
 (s/fdef register-tx
   :args (s/cat :user ::register)
   :ret nil?)
@@ -71,7 +87,9 @@
   (login [db jwt user] "Login a user")
   (update-user [db jwt user] "Update user")
   (get-user [db jwt user-id] "Get user")
-  (get-user-by-name [db username id] "Get user"))
+  (get-user-by-name [db username id] "Get user")
+  (follow [db user-id following-user-id] "Follow a user")
+  (unfollow [db user-id following-user-id] "Unfollow a user"))
 
 (extend-protocol UserDB
   duct.database.sql.Boundary
@@ -90,4 +108,10 @@
   (get-user-by-name [db username id]
     (get-full-user-by-name 
      (-> db :spec :datasource)
-     username id)))
+     username id))
+  (follow [db user-id following-username]
+    (jdbc/transact (-> db :spec :datasource)
+                   (follow-tx user-id following-username)))
+  (unfollow [db user-id following-username]
+    (jdbc/transact (-> db :spec :datasource)
+                   (unfollow-tx user-id following-username))))

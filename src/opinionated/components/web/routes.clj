@@ -82,8 +82,20 @@
                   (wrap-auth (:backend jwt))
                   (wrap-ok-response)
                   (wrap-error-response))}]
-    ["/follow" {:post status-ok
-                :delete status-ok}]]
+    ["/follow" {:post (-> (fn [req]
+                            (d/future-with executor (user/follow db (-> req :identity :user)
+                                                                    (-> req :path-params :username))))
+                          (wrap-protected)
+                          (wrap-auth (:backend jwt))
+                          (wrap-ok-response)
+                          (wrap-error-response))
+                :delete (-> (fn [req]
+                              (d/future-with executor (user/unfollow db (-> req :identity :user)
+                                                                        (-> req :path-params :username))))
+                            (wrap-protected)
+                            (wrap-auth (:backend jwt))
+                            (wrap-ok-response)
+                            (wrap-error-response))}]]
    ["/user" {:get (-> #(d/future-with executor (user/get-user db jwt (-> % :identity :user)))
                       (wrap-protected)
                       (wrap-auth (:backend jwt))
