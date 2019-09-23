@@ -61,6 +61,11 @@
                  :body (.getMessage error)}))))
 
 (defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [db executor jwt] :as options}]
+  (let [protected-middlware #(-> % 
+                                 (wrap-protected)
+                                 (wrap-auth (:backend jwt))
+                                 (wrap-ok-response)
+                                 (wrap-error-response))])
   ["/api"
    ["/articles" 
     ["" {:get status-ok
@@ -77,38 +82,31 @@
                    :delete status-ok}]]]
    ["/tags" {:get status-ok}]
    ["/profiles/:username" 
-    ["" {:get (-> #(d/future-with executor (user/get-user-by-name db (-> % :path-params :username) (-> % :identity :user)))
-                  (wrap-protected)
-                  (wrap-auth (:backend jwt))
-                  (wrap-ok-response)
-                  (wrap-error-response))}]
+    ["" {:get (-> #(d/future-with executor 
+                                  (user/get-user-by-name db 
+                                                         (-> % :path-params :username) 
+                                                         (-> % :identity :user)))
+                  protected-middlware)}]
     ["/follow" {:post (-> (fn [req]
-                            (d/future-with executor (user/follow db (-> req :identity :user)
-                                                                    (-> req :path-params :username))))
-                          (wrap-protected)
-                          (wrap-auth (:backend jwt))
-                          (wrap-ok-response)
-                          (wrap-error-response))
+                            (d/future-with executor 
+                                           (user/follow db (-> req :identity :user)
+                                                        (-> req :path-params :username))))
+                          protected-middlware)
                 :delete (-> (fn [req]
-                              (d/future-with executor (user/unfollow db (-> req :identity :user)
-                                                                        (-> req :path-params :username))))
-                            (wrap-protected)
-                            (wrap-auth (:backend jwt))
-                            (wrap-ok-response)
-                            (wrap-error-response))}]]
-   ["/user" {:get (-> #(d/future-with executor (user/get-user db jwt (-> % :identity :user)))
-                      (wrap-protected)
-                      (wrap-auth (:backend jwt))
-                      (wrap-ok-response)
-                      (wrap-error-response))
+                              (d/future-with executor 
+                                             (user/unfollow db (-> req :identity :user)
+                                                            (-> req :path-params :username))))
+                            protected-middlware)}]]
+   ["/user" {:get (-> #(d/future-with executor 
+                                      (user/get-user db jwt (-> % :identity :user)))
+                      protected-middlware)
              :put (-> (fn [req]
-                        (d/future-with executor (user/update-user db jwt (assoc (:body req)
-                                                                                :id (-> req :identity :user)))))
+                        (d/future-with executor 
+                                       (user/update-user db jwt 
+                                                         (assoc (:body req)
+                                                                :id (-> req :identity :user)))))
                       (wrap-json-format-req executor)
-                      (wrap-protected)
-                      (wrap-auth (:backend jwt))
-                      (wrap-ok-response)
-                      (wrap-error-response))}]
+                      protected-middlware)}]
    ["/users"
     ["" {:post (-> #(d/future-with (ex/wait-pool) (user/register db jwt %))
                    (wrap-spec-validate :opinionated.logic.user/register)
