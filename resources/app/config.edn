@@ -37,8 +37,10 @@
    :down ["DROP TABLE user_following;"
           "DROP TABLE user;"]}
   [:duct.migrator.ragtime/sql :opinionated.migration/create-article-tables]
-  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL);"]
-   :down ["DROP TABLE article;"]}}
+  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL, UNIQUE(slug));"
+        "CREATE TABLE article_tag (id INTEGER PRIMARY KEY, articleId INTEGER, tag TEXT NOT NULL);"]
+   :down ["DROP TABLE article_tag;"
+          "DROP TABLE article;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"
  :duct.profile/test  {:opinionated.components.db/read {:jdbc-url "jdbc:sqlite::memory:"}

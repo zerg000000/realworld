@@ -77,7 +77,12 @@
                      protected-middlware)}]
       ["/feed" {:get status-ok}]
       ["/:slug"
-       ["" {:get status-ok
+       ["" {:get (-> #(d/future-with executor
+                                     (article/get-by-slug db
+                                        (-> % :path-params :slug)
+                                        (-> % :identity :user)))
+                     (wrap-ok-response)
+                     (wrap-error-response))
             :put status-ok
             :delete status-ok}]
        ["/comments" {:get status-ok
@@ -85,7 +90,10 @@
         ["/:id" {:delete status-ok}]]
        ["/favorite" {:post status-ok
                      :delete status-ok}]]]
-     ["/tags" {:get status-ok}]
+     ["/tags" {:get (-> (fn [req]
+                          (d/future-with executor (article/get-tags db)))
+                        (wrap-ok-response)
+                        (wrap-error-response))}]
      ["/profiles/:username"
       ["" {:get (-> #(d/future-with executor
                                     (user/get-user-by-name db

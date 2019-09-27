@@ -8,13 +8,27 @@
   (:import [java.util Date]))
 
 (defn get-article-by-slug [conn article-slug user-id]
-  (jdbc/execute-one! conn ["SELECT a.*, u.username, u.bio, u.image 
+  (let [raw (jdbc/execute-one! conn (if user-id
+                                      ["SELECT a.*, u.username, u.bio, u.image, uf.followingUserId as following 
                               FROM article a
                               LEFT JOIN user u
                                 ON a.author = u.id
                               LEFT JOIN user_following uf
                                 ON u.id = uf.followingUserId
-                             WHERE uf.userId = ? " user-id]))
+                               AND uf.userId = ? 
+                             WHERE a.slug = ? " user-id article-slug]
+                                      ["SELECT a.*, u.username, u.bio, u.image, null as following 
+                              FROM article a
+                              LEFT JOIN user u
+                                ON a.author = u.id 
+                             WHERE a.slug = ? " article-slug])
+                               {:builder-fn rs/as-unqualified-maps})]
+    (-> (select-keys raw [:slug :title :description :body :createdAt :updatedAt])
+        (assoc :author (select-keys raw [:username :bio :image :following]))
+        (update-in [:author :following] boolean)
+        (update :createdAt #(Date. %))
+        (update :updatedAt #(Date. %)))
+    ))
 
 (defn create-article-tx [article]
   (let [new-article 
@@ -24,14 +38,28 @@
                    :createdAt (Date.)
                    :updatedAt (Date.)))]
     (fn [conn]
-      (sql/insert! conn :article new-article)
-      (get-article-by-slug conn (:slug new-article) (:author new-article)))))
+      (let [id (-> (sql/insert! conn :article new-article) vals first)]
+        (when-let [tags (seq (:tagList article))]
+          (sql/insert-multi! conn :article_tag [:articleId :tag] (for [tag tags]
+                                                                   [id tag])))
+        (get-article-by-slug conn (:slug new-article) (:author new-article))))))
 
-(defprotocol UserDB
-  (create-article [db article]))
+(defn get-all-tags [conn]
+  {:tags (->> (jdbc/execute! conn ["SELECT DISTINCT tag FROM article_tag"] {:builder-fn rs/as-unqualified-maps})
+              (map :tag))})
 
-(extend-protocol UserDB
+(defprotocol ArticleDB
+  (create-article [db article])
+  (get-by-slug [db slug user-id])
+  (get-tags [db]))
+
+(extend-protocol ArticleDB
   duct.database.sql.Boundary
   (create-article [db article]
     (jdbc/transact (-> db :spec :datasource)
-                   (create-article-tx article))))
+                   (create-article-tx article)))
+  (get-by-slug [db slug user-id]
+    (get-article-by-slug (-> db :spec :datasource)
+                         slug user-id))
+  (get-tags [db]
+    (get-all-tags (-> db :spec :datasource))))
