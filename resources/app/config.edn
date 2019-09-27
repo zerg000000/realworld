@@ -28,13 +28,17 @@
   {:database   #ig/ref :opinionated.components.db/write
    :logger     #ig/ref :duct/logger
    :strategy   :rebase
-   :migrations [#ig/ref :opinionated.migration/create-tables]}
+   :migrations [#ig/ref :opinionated.migration/create-tables
+                #ig/ref :opinionated.migration/create-article-tables]}
   
   [:duct.migrator.ragtime/sql :opinionated.migration/create-tables]
   {:up ["CREATE TABLE user (id INTEGER PRIMARY KEY, password TEXT NOT NULL, email TEXT NOT NULL, username TEXT NOT NULL, bio TEXT, image TEXT, UNIQUE (email));"
-        "CREATE TABLE user_following (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, following_user_id, followed_at TIMESTAMP);"]
+        "CREATE TABLE user_following (id INTEGER PRIMARY KEY, userId INTEGER NOT NULL, followingUserId, followedAt TIMESTAMP);"]
    :down ["DROP TABLE user_following;"
-          "DROP TABLE user;"]}}
+          "DROP TABLE user;"]}
+  [:duct.migrator.ragtime/sql :opinionated.migration/create-article-tables]
+  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL);"]
+   :down ["DROP TABLE article;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"
  :duct.profile/test  {:opinionated.components.db/read {:jdbc-url "jdbc:sqlite::memory:"}

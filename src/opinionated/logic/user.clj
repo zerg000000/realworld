@@ -31,8 +31,8 @@
                                        ["SELECT username, bio, image, user_following.id following
                           FROM user 
                           LEFT JOIN user_following
-                            ON user.id = user_following.following_user_id
-                           AND user_following.user_id = ?
+                            ON user.id = user_following.followingUserId
+                           AND user_following.userId = ?
                          WHERE user.username = ? " id username]
                                        ["SELECT username, bio, image FROM user WHERE username = ? " username])
                                      {:builder-fn rs/as-unqualified-maps})]
@@ -41,7 +41,6 @@
 (defn login-tx [user jwt]
   (fn [conn]
     (let [full-user (first (sql/find-by-keys conn :user (select-keys user [:email]) {:builder-fn rs/as-unqualified-maps}))]
-      (prn full-user)
       (if (and full-user 
                (hashers/check (:password user) (:password full-user)))
         {:user (-> (dissoc full-user :password)
@@ -65,7 +64,7 @@
 (defn follow-tx [user-id following-username]
   (fn [conn]
     (jdbc/execute! conn ["INSERT INTO user_following 
-                          (user_id, following_user_id) 
+                          (userId, followingUserId) 
                           VALUES (?, (SELECT id FROM user WHERE username = ? LIMIT 1))" 
                          user-id following-username])
     (get-full-user-by-name conn following-username user-id)))
@@ -73,8 +72,8 @@
 (defn unfollow-tx [user-id following-username]
   (fn [conn]
     (jdbc/execute! conn ["DELETE FROM user_following 
-                           WHERE user_id = ? 
-                             AND following_user_id in (SELECT id FROM user WHERE username = ?)"
+                           WHERE userId = ? 
+                             AND followingUserId in (SELECT id FROM user WHERE username = ?)"
                          user-id following-username])
     (get-full-user-by-name conn following-username user-id)))
 
