@@ -37,9 +37,11 @@
    :down ["DROP TABLE user_following;"
           "DROP TABLE user;"]}
   [:duct.migrator.ragtime/sql :opinionated.migration/create-article-tables]
-  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL, UNIQUE(slug));"
-        "CREATE TABLE article_tag (id INTEGER PRIMARY KEY, articleId INTEGER, tag TEXT NOT NULL);"]
-   :down ["DROP TABLE article_tag;"
+  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL, favoritesCount INTEGER DEFAULT 0, UNIQUE(slug));"
+        "CREATE TABLE article_tag (id INTEGER PRIMARY KEY, articleId INTEGER, tag TEXT NOT NULL);"
+        "CREATE TABLE article_favorite (id INTEGER PRIMARY KEY, articleId INTEGER NOT NULL, userId INTEGER NOT NULL, UNIQUE(articleId, userId));"]
+   :down ["DROP TABLE article_favorite;"
+          "DROP TABLE article_tag;"
           "DROP TABLE article;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"

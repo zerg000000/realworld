@@ -93,8 +93,18 @@
        ["/comments" {:get status-ok
                      :post status-ok}
         ["/:id" {:delete status-ok}]]
-       ["/favorite" {:post status-ok
-                     :delete status-ok}]]]
+       ["/favorite" {:post (-> (fn [req]
+                                 (d/future-with executor
+                                                (article/favorite db
+                                                                  (-> req :path-params :slug) 
+                                                                  (-> req :identity :user))))
+                               protected-middlware)
+                     :delete (-> (fn [req]
+                                   (d/future-with executor
+                                                  (article/unfavorite db
+                                                                      (-> req :path-params :slug)
+                                                                      (-> req :identity :user))))
+                                 protected-middlware)}]]]
      ["/tags" {:get (-> (fn [req]
                           (d/future-with executor (article/get-tags db)))
                         (wrap-ok-response)

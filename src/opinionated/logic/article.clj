@@ -10,19 +10,21 @@
   (:import [java.util Date]))
 
 (def article-base
-  {:select [:a.* 
+  {:select [:a.*
             :author.username :author.bio :author.image]
     :from [[:article :a]]
     :left-join [[:user :author] [:= :a.author :author.id]]})
 
 (defn with-user [query user-id]
   (-> query
-      (hs/merge-left-join [:user_following :uf] [:and [:= :author.id :uf.followingUserId] [:= :uf.userId user-id]])
-      (hs/merge-select [:uf.followingUserId :following])))
+      (hs/merge-left-join [:user_following :uf] [:and [:= :author.id :uf.followingUserId] [:= :uf.userId user-id]]
+                          [:article_favorite :af] [:and [:= :a.id :af.articleId] [:= :af.userId user-id]])
+      (hs/merge-select [:uf.followingUserId :following]
+                       [:af.userId :favorited])))
 
 (defn without-user [query]
   (-> query
-      (hs/merge-select [:false :following])))
+      (hs/merge-select [:false :following] [:false :favorited])))
 
 (defn get-article-by-slug [conn article-slug user-id]
   (let [raw (jdbc/execute-one! conn (-> (if user-id
@@ -31,9 +33,10 @@
                                         (hs/where [:= :a.slug article-slug])
                                         (h/format))
                                {:builder-fn rs/as-unqualified-maps})]
-    (-> (select-keys raw [:slug :title :description :body :createdAt :updatedAt])
+    (-> (select-keys raw [:slug :title :description :body :createdAt :updatedAt :favoritesCount :favorited])
         (assoc :author (select-keys raw [:username :bio :image :following]))
         (update-in [:author :following] boolean)
+        (update :favorited boolean)
         (update :createdAt #(Date. %))
         (update :updatedAt #(Date. %)))))
 
@@ -59,7 +62,6 @@
             (assoc :slug (str/uslug (:title article))
                    :updatedAt (Date.)))]
     (fn [conn]
-      (prn update-article existing)
       (sql/update! conn :article update-article existing)
       (get-article-by-slug conn (:slug update-article) (:author existing)))))
 
@@ -67,9 +69,30 @@
   {:tags (->> (jdbc/execute! conn ["SELECT DISTINCT tag FROM article_tag"] {:builder-fn rs/as-unqualified-maps})
               (map :tag))})
 
+(defn favorite-tx [article-slug user-id]
+  (fn [conn]
+    (jdbc/execute-one! conn ["INSERT INTO article_favorite 
+                          (userId, articleId) 
+                          VALUES (?, (SELECT id FROM article WHERE slug = ? LIMIT 1))"
+                         user-id article-slug])
+    (jdbc/execute-one! conn ["UPDATE article SET favoritesCount = favoritesCount + 1 WHERE slug = ?" article-slug])
+    (get-article-by-slug conn article-slug user-id)))
+
+(defn unfavorite-tx [article-slug user-id]
+  (fn [conn]
+    (jdbc/execute! conn ["DELETE FROM article_favorite 
+                           WHERE userId = ? 
+                             AND articleId in (SELECT id FROM article WHERE slug = ?)"
+                         user-id article-slug])
+    (jdbc/execute-one! conn ["UPDATE article SET favoritesCount = favoritesCount - 1 
+                               WHERE slug = ?" article-slug])
+    (get-article-by-slug conn article-slug user-id)))
+
 (defprotocol ArticleDB
   (create-article [db article])
   (update-article [db article])
+  (favorite [db article-slug user-id])
+  (unfavorite [db article-slug user-id])
   (get-by-slug [db slug user-id])
   (get-tags [db]))
 
@@ -81,6 +104,12 @@
   (update-article [db article]
     (jdbc/transact (-> db :spec :datasource)
                    (update-article-tx article)))
+  (favorite [db article-slug user-id]
+    (jdbc/transact (-> db :spec :datasource)
+                   (favorite-tx article-slug user-id)))
+  (unfavorite [db article-slug user-id]
+    (jdbc/transact (-> db :spec :datasource)
+                   (unfavorite-tx article-slug user-id)))
   (get-by-slug [db slug user-id]
     (get-article-by-slug (-> db :spec :datasource)
                          slug user-id))
