@@ -83,7 +83,12 @@
                                         (-> % :identity :user)))
                      (wrap-ok-response)
                      (wrap-error-response))
-            :put status-ok
+            :put (-> #(d/future-with executor
+                                     (article/update-article db (assoc (-> % :body :article)
+                                                                       :slug (-> % :path-params :slug)
+                                                                       :author (-> % :identity :user))))
+                     (wrap-json-format-req executor)
+                     protected-middlware)
             :delete status-ok}]
        ["/comments" {:get status-ok
                      :post status-ok}

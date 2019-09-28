@@ -33,7 +33,7 @@
   
   [:duct.migrator.ragtime/sql :opinionated.migration/create-tables]
   {:up ["CREATE TABLE user (id INTEGER PRIMARY KEY, password TEXT NOT NULL, email TEXT NOT NULL, username TEXT NOT NULL, bio TEXT, image TEXT, UNIQUE (email));"
-        "CREATE TABLE user_following (id INTEGER PRIMARY KEY, userId INTEGER NOT NULL, followingUserId, followedAt TIMESTAMP);"]
+        "CREATE TABLE user_following (id INTEGER PRIMARY KEY, userId INTEGER NOT NULL, followingUserId INTEGER, followedAt TIMESTAMP);"]
    :down ["DROP TABLE user_following;"
           "DROP TABLE user;"]}
   [:duct.migrator.ragtime/sql :opinionated.migration/create-article-tables]

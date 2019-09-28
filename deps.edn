@@ -12,6 +12,7 @@
         buddy/buddy-sign {:mvn/version "3.1.0"}
         buddy/buddy-auth {:mvn/version "2.2.0"}
         ; db & db related
+        honeysql {:mvn/version "0.9.8"}
         duct/migrator.ragtime {:mvn/version "0.3.0"}
         seancorfield/next.jdbc {:mvn/version "1.0.7"}
         hikari-cp {:mvn/version "2.8.0"}
