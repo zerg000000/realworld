@@ -70,6 +70,7 @@
   (fn error-response [req]
     (d/catch' (h req)
               (fn error-handler [error]
+                (.printStackTrace error)
                 {:status 400
                  :body (.getMessage error)}))))
 
@@ -111,7 +112,11 @@
                                                                        :author (-> % :identity :user))))
                      (wrap-json-format-req executor)
                      protected-middlware)
-            :delete status-ok}]
+            :delete (-> #(d/future-with executor
+                                        (article/delete-article db 
+                                                                (-> % :path-params :slug)
+                                                                (-> % :identity :user)))
+                        protected-middlware)}]
        ["/comments" {:get status-ok
                      :post status-ok}
         ["/:id" {:delete status-ok}]]

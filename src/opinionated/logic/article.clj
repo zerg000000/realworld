@@ -108,6 +108,14 @@
       (sql/update! conn :article update-article existing)
       (get-article-by-slug conn (:slug update-article) (:author existing)))))
 
+(defn delete-article-tx [article-slug user-id]
+  (fn [conn]
+    (when-let [id (:article/id (jdbc/execute-one! conn ["SELECT id FROM article WHERE slug = ? AND author = ?" article-slug user-id]))]
+      (sql/delete! conn :article_tag {:articleId id})
+      (sql/delete! conn :article_comment {:articleId id})
+      (sql/delete! conn :article {:id id})
+      nil)))
+
 (defn get-all-tags [conn]
   {:tags (->> (jdbc/execute! conn ["SELECT DISTINCT tag FROM article_tag"] {:builder-fn rs/as-unqualified-maps})
               (map :tag))})
@@ -134,6 +142,7 @@
 (defprotocol ArticleDB
   (create-article [db article])
   (update-article [db article])
+  (delete-article [db article-slug user-id])
   (favorite [db article-slug user-id])
   (unfavorite [db article-slug user-id])
   (get-by-slug [db slug user-id])
@@ -149,6 +158,9 @@
   (update-article [db article]
     (jdbc/transact (-> db :spec :datasource)
                    (update-article-tx article)))
+  (delete-article [db article-slug user-id]
+    (jdbc/transact (-> db :spec :datasource)
+                   (delete-article-tx article-slug user-id)))
   (favorite [db article-slug user-id]
     (jdbc/transact (-> db :spec :datasource)
                    (favorite-tx article-slug user-id)))
