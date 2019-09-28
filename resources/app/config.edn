@@ -29,7 +29,8 @@
    :logger     #ig/ref :duct/logger
    :strategy   :rebase
    :migrations [#ig/ref :opinionated.migration/create-tables
-                #ig/ref :opinionated.migration/create-article-tables]}
+                #ig/ref :opinionated.migration/create-article-tables
+                #ig/ref :opinionated.migration/create-comment-tables]}
   
   [:duct.migrator.ragtime/sql :opinionated.migration/create-tables]
   {:up ["CREATE TABLE user (id INTEGER PRIMARY KEY, password TEXT NOT NULL, email TEXT NOT NULL, username TEXT NOT NULL, bio TEXT, image TEXT, UNIQUE (email));"
@@ -42,7 +43,10 @@
         "CREATE TABLE article_favorite (id INTEGER PRIMARY KEY, articleId INTEGER NOT NULL, userId INTEGER NOT NULL, UNIQUE(articleId, userId));"]
    :down ["DROP TABLE article_favorite;"
           "DROP TABLE article_tag;"
-          "DROP TABLE article;"]}}
+          "DROP TABLE article;"]}
+  [:duct.migrator.ragtime/sql :opinionated.migration/create-comment-tables]
+  {:up ["CREATE TABLE article_comment (id INTEGER PRIMARY KEY, articleId INTEGER, body TEXT NOT NULL, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL);"]
+   :down ["DROP TABLE article_comment;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"
  :duct.profile/test  {:opinionated.components.db/read {:jdbc-url "jdbc:sqlite::memory:"}

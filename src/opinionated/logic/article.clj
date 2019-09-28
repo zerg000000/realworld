@@ -26,6 +26,14 @@
   (-> query
       (hs/merge-select [:false :following] [:false :favorited])))
 
+(defn nice-article [article]
+  (-> (select-keys article [:slug :title :description :body :createdAt :updatedAt :favoritesCount :favorited])
+      (assoc :author (select-keys article [:username :bio :image :following]))
+      (update-in [:author :following] boolean)
+      (update :favorited boolean)
+      (update :createdAt #(Date. %))
+      (update :updatedAt #(Date. %))))
+
 (defn get-article-by-slug [conn article-slug user-id]
   (let [raw (jdbc/execute-one! conn (-> (if user-id
                                           (with-user article-base user-id)
@@ -33,12 +41,47 @@
                                         (hs/where [:= :a.slug article-slug])
                                         (h/format))
                                {:builder-fn rs/as-unqualified-maps})]
-    (-> (select-keys raw [:slug :title :description :body :createdAt :updatedAt :favoritesCount :favorited])
-        (assoc :author (select-keys raw [:username :bio :image :following]))
-        (update-in [:author :following] boolean)
-        (update :favorited boolean)
-        (update :createdAt #(Date. %))
-        (update :updatedAt #(Date. %)))))
+    {:article (nice-article raw)}))
+
+(defn get-article-feed [conn user-id {:keys [limit offset]
+                                      :or {limit 20
+                                           offset 0}}]
+  {:articles
+   (into [] (map nice-article) 
+        (jdbc/plan conn (-> article-base
+                            (with-user user-id)
+                            (hs/where [:and [:= :uf.followingUserId :a.author]
+                                            [:= :uf.userId user-id]])
+                            (hs/order-by [:createdAt :desc])
+                            (hs/limit limit)
+                            (hs/offset offset)
+                            (h/format))
+                   {:builder-fn rs/as-unqualified-maps}))})
+
+(defn find-articles [conn user-id {:keys [limit offset tag author favorited]
+                                   :or {limit 20
+                                        offset 0}
+                                   :as opts}]
+  (let [sql (cond-> article-base
+              user-id (with-user user-id)
+              (not user-id) (without-user user-id)
+              tag (hs/merge-where [:exists {:select [:1] 
+                                            :from [:article_tag]
+                                            :where [:and [:= :tag tag] 
+                                                    [:= :articleId :a.id]]}])
+              author (hs/merge-where [:= :author.username author])
+              favorited (hs/merge-where [:exists {:select [:1]
+                                                  :from [[:article_favorite :filter_fav]]
+                                                  :inner-join [[:user :fav_user] [:= :fav_user.username favorited]]
+                                                  :where [:= :filter_fav.articleId :a.id]}])
+              true (hs/order-by [:createdAt :desc])
+              limit (hs/limit limit)
+              offset (hs/offset offset)
+              true (h/format))]
+    {:articles
+     (->> (jdbc/plan conn sql
+                     {:builder-fn rs/as-unqualified-maps})
+          (into [] (map nice-article)))}))
 
 (defn create-article-tx [article]
   (let [new-article 
@@ -94,7 +137,9 @@
   (favorite [db article-slug user-id])
   (unfavorite [db article-slug user-id])
   (get-by-slug [db slug user-id])
-  (get-tags [db]))
+  (get-tags [db])
+  (get-feed [db user-id args])
+  (get-articles [db user-id args]))
 
 (extend-protocol ArticleDB
   duct.database.sql.Boundary
@@ -114,4 +159,8 @@
     (get-article-by-slug (-> db :spec :datasource)
                          slug user-id))
   (get-tags [db]
-    (get-all-tags (-> db :spec :datasource))))
+    (get-all-tags (-> db :spec :datasource)))
+  (get-feed [db user-id args]
+    (get-article-feed (-> db :spec :datasource) user-id args))
+  (get-articles [db user-id args]
+    (find-articles (-> db :spec :datasource) user-id args)))

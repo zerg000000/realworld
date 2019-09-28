@@ -4,6 +4,8 @@
             [manifold.deferred :as d]
             [manifold.executor :as ex]
             [clojure.spec.alpha :as s]
+            [ring.middleware.params :as params]
+            [clojure.walk :as w]
             [buddy.auth.middleware :refer [authentication-request]]
             [buddy.auth :refer [authenticated?]] 
             [opinionated.logic.user :as user]
@@ -17,6 +19,16 @@
   {:handler (fn status-ok [req]
               {:status 200
                :body "OK"})})
+
+(defn params-keyword [req]
+  (update req :query-params w/keywordize-keys))
+
+(defn wrap-params [h]
+  (fn params [req]
+    (d/chain' req
+              params/params-request
+              params-keyword
+              h)))
 
 (defn wrap-auth [h & backends]
   (fn auth [req]
@@ -69,13 +81,23 @@
                                  (wrap-error-response))]
     ["/api"
      ["/articles"
-      ["" {:get status-ok
+      ["" {:get (-> #(d/future-with executor
+                                    (article/get-articles db
+                                                          (-> % :identity :user)
+                                                          (-> % :query-params)))
+                    (wrap-params)
+                    protected-middlware)
            :post (-> #(d/future-with executor
                                      (article/create-article db (assoc (-> % :body :article) 
                                                                        :author (-> % :identity :user))))
                      (wrap-json-format-req executor)
                      protected-middlware)}]
-      ["/feed" {:get status-ok}]
+      ["/feed" {:get (-> #(d/future-with executor
+                                         (article/get-feed db 
+                                                           (-> % :identity :user) 
+                                                           (-> % :query-params)))
+                         (wrap-params)
+                         protected-middlware)}]
       ["/:slug"
        ["" {:get (-> #(d/future-with executor
                                      (article/get-by-slug db
