@@ -74,102 +74,101 @@
                 {:status 400
                  :body (.getMessage error)}))))
 
-(defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [db executor jwt] :as options}]
+(defmacro run [context bindings destructure-pattern & body]
+  `(do
+     (fn [req#]
+       (d/future-with (:executor ~context)
+                      (let [~destructure-pattern req#
+                            {:keys [~@bindings]} ~context]
+                        (do ~@body))))))
+
+(defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [executor jwt] :as options}]
   (let [protected-middlware #(-> %
                                  (wrap-protected)
                                  (wrap-auth (:backend jwt))
                                  (wrap-ok-response)
-                                 (wrap-error-response))]
+                                 (wrap-error-response))
+        base-mw #(-> %
+                     (wrap-ok-response)
+                     (wrap-error-response))]
     ["/api"
      ["/articles"
-      ["" {:get (-> #(d/future-with executor
-                                    (article/get-articles db
-                                                          (-> % :identity :user)
-                                                          (-> % :query-params)))
-                    (wrap-params)
-                    protected-middlware)
-           :post (-> #(d/future-with executor
-                                     (article/create-article db (assoc (-> % :body :article) 
-                                                                       :author (-> % :identity :user))))
+      ["" {:get (-> (run options [db] {{user :user} :identity
+                                        args         :query-params}
+                          (article/get-articles db user args))
+                     (wrap-params)
+                     protected-middlware)
+           :post (-> (run options [db] {{article :article} :body
+                                        {user :user} :identity}
+                       (article/create-article db (assoc article :author user)))
                      (wrap-json-format-req executor)
                      protected-middlware)}]
-      ["/feed" {:get (-> #(d/future-with executor
-                                         (article/get-feed db 
-                                                           (-> % :identity :user) 
-                                                           (-> % :query-params)))
+      ["/feed" {:get (-> (run options [db] {{user :user} :identity
+                                            args         :query-params}
+                          (article/get-feed db user args))
                          (wrap-params)
                          protected-middlware)}]
       ["/:slug"
-       ["" {:get (-> #(d/future-with executor
-                                     (article/get-by-slug db
-                                        (-> % :path-params :slug)
-                                        (-> % :identity :user)))
-                     (wrap-ok-response)
-                     (wrap-error-response))
-            :put (-> #(d/future-with executor
-                                     (article/update-article db (assoc (-> % :body :article)
-                                                                       :slug (-> % :path-params :slug)
-                                                                       :author (-> % :identity :user))))
+       ["" {:get (-> (run options [db] {{user :user} :identity
+                                        {slug :slug} :path-params}
+                       (article/get-by-slug db slug user))
+                     base-mw)
+            :put (-> (run options [db] {{user :user} :identity
+                                        {slug :slug} :path-params
+                                        {article :article} :body}
+                      (article/update-article db (assoc article
+                                                        :slug slug
+                                                        :author user)))
                      (wrap-json-format-req executor)
                      protected-middlware)
-            :delete (-> #(d/future-with executor
-                                        (article/delete-article db 
-                                                                (-> % :path-params :slug)
-                                                                (-> % :identity :user)))
+            :delete (-> (run options [db] {{user :user} :identity
+                                           {slug :slug} :path-params}
+                          (article/delete-article db slug user))
                         protected-middlware)}]
        ["/comments" {:get status-ok
                      :post status-ok}
         ["/:id" {:delete status-ok}]]
-       ["/favorite" {:post (-> (fn [req]
-                                 (d/future-with executor
-                                                (article/favorite db
-                                                                  (-> req :path-params :slug) 
-                                                                  (-> req :identity :user))))
+       ["/favorite" {:post (-> (run options [db] {{user :user} :identity
+                                                  {slug :slug} :path-params}
+                                 (article/favorite db slug user))
                                protected-middlware)
-                     :delete (-> (fn [req]
-                                   (d/future-with executor
-                                                  (article/unfavorite db
-                                                                      (-> req :path-params :slug)
-                                                                      (-> req :identity :user))))
+                     :delete (-> (run options [db] {{user :user} :identity
+                                                    {slug :slug} :path-params}
+                                  (article/unfavorite db slug user))
                                  protected-middlware)}]]]
-     ["/tags" {:get (-> (fn [req]
-                          (d/future-with executor (article/get-tags db)))
-                        (wrap-ok-response)
-                        (wrap-error-response))}]
+     ["/tags" {:get (-> (run options [db] _
+                          (article/get-tags db))
+                        base-mw)}]
      ["/profiles/:username"
-      ["" {:get (-> #(d/future-with executor
-                                    (user/get-user-by-name db
-                                                           (-> % :path-params :username)
-                                                           (-> % :identity :user)))
+      ["" {:get (-> (run options [db] {{user :user} :identity
+                                       {username :username} :path-params}
+                      (user/get-user-by-name db username user))
                     protected-middlware)}]
-      ["/follow" {:post (-> (fn [req]
-                              (d/future-with executor
-                                             (user/follow db (-> req :identity :user)
-                                                             (-> req :path-params :username))))
+      ["/follow" {:post (-> (run options [db] {{user :user} :identity
+                                               {username :username} :path-params}
+                              (user/follow db user username))
                             protected-middlware)
-                  :delete (-> (fn [req]
-                                (d/future-with executor
-                                               (user/unfollow db (-> req :identity :user)
-                                                                 (-> req :path-params :username))))
+                  :delete (-> (run options [db] {{user :user} :identity
+                                                 {username :username} :path-params}
+                                (user/unfollow db user username))
                               protected-middlware)}]]
-     ["/user" {:get (-> #(d/future-with executor
-                                        (user/get-user db jwt (-> % :identity :user)))
+     ["/user" {:get (-> (run options [db jwt] {{user :user} :identity}
+                          (user/get-user db jwt user))
                         protected-middlware)
-               :put (-> (fn [req]
-                          (d/future-with executor
-                                         (user/update-user db jwt
-                                                           (assoc (:body req)
-                                                                  :id (-> req :identity :user)))))
+               :put (-> (run options [db jwt] {{user :user} :identity
+                                               user-info    :body}
+                          (user/update-user db jwt (assoc user-info
+                                                          :id user)))
                         (wrap-json-format-req executor)
                         protected-middlware)}]
      ["/users"
-      ["" {:post (-> #(d/future-with (ex/wait-pool) (user/register db jwt %))
+      ["" {:post (-> (run options [db jwt] reg-form 
+                        (user/register db jwt reg-form))
                      (wrap-spec-validate :opinionated.logic.user/register)
                      (wrap-json-format executor)
-                     (wrap-ok-response)
-                     (wrap-error-response))}]
-      ["/login" {:post (-> #(d/future-with executor (user/login db jwt %))
+                     base-mw)}]
+      ["/login" {:post (-> (run options [db jwt] login-form 
+                                (user/login db jwt login-form))
                            (wrap-spec-validate :opinionated.logic.user/login)
                            (wrap-json-format executor)
-                           (wrap-ok-response)
-                           (wrap-error-response))}]]]))
+                           base-mw)}]]]))
