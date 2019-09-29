@@ -89,6 +89,10 @@
                                  (wrap-auth (:backend jwt))
                                  (wrap-ok-response)
                                  (wrap-error-response))
+        optional-mw #(-> %
+                         (wrap-auth (:backend jwt))
+                         (wrap-ok-response)
+                         (wrap-error-response))
         base-mw #(-> %
                      (wrap-ok-response)
                      (wrap-error-response))]
@@ -98,7 +102,7 @@
                                         args         :query-params}
                           (article/get-articles db user args))
                      (wrap-params)
-                     protected-middlware)
+                     optional-mw)
            :post (-> (run options [db] {{article :article} :body
                                         {user :user} :identity}
                        (article/create-article db (assoc article :author user)))
@@ -113,7 +117,7 @@
        ["" {:get (-> (run options [db] {{user :user} :identity
                                         {slug :slug} :path-params}
                        (article/get-by-slug db slug user))
-                     base-mw)
+                     optional-mw)
             :put (-> (run options [db] {{user :user} :identity
                                         {slug :slug} :path-params
                                         {article :article} :body}
@@ -131,7 +135,7 @@
                                          {slug :slug}       :path-params}
                            (comment/get-comment db slug user))
                       (wrap-json-format-req executor)
-                      protected-middlware)
+                      optional-mw)
              :post (-> (run options [db] {{user :user}       :identity
                                           {slug :slug}       :path-params
                                           {comment :comment} :body}
@@ -157,7 +161,7 @@
       ["" {:get (-> (run options [db] {{user :user} :identity
                                        {username :username} :path-params}
                       (user/get-user-by-name db username user))
-                    protected-middlware)}]
+                    optional-mw)}]
       ["/follow" {:post (-> (run options [db] {{user :user} :identity
                                                {username :username} :path-params}
                               (user/follow db user username))

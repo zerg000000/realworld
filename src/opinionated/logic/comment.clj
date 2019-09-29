@@ -19,9 +19,9 @@
       (hs/merge-left-join [:user_following :uf] [:and [:= :author.id :uf.followingUserId]
                                                       [:= :uf.userId user-id]])))
 
-(defn without-user [query user-id]
+(defn without-user [query]
   (-> query
-      (hs/merge-select [:false :following])))
+      (hs/merge-select [:null :following])))
 
 (defn nice-comment [c]
   (-> (select-keys c [:id :body :createdAt :updatedAt])

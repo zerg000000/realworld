@@ -24,7 +24,7 @@
 
 (defn without-user [query]
   (-> query
-      (hs/merge-select [:false :following] [:false :favorited])))
+      (hs/merge-select [:null :following] [:null :favorited])))
 
 (defn nice-article [article]
   (-> (select-keys article [:slug :title :description :body :createdAt :updatedAt :favoritesCount :favorited])
@@ -64,7 +64,7 @@
                                    :as opts}]
   (let [sql (cond-> article-base
               user-id (with-user user-id)
-              (not user-id) (without-user user-id)
+              (not user-id) (without-user)
               tag (hs/merge-where [:exists {:select [:1] 
                                             :from [:article_tag]
                                             :where [:and [:= :tag tag] 
