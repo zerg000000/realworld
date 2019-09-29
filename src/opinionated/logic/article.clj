@@ -27,10 +27,13 @@
       (hs/merge-select [:null :following] [:null :favorited])))
 
 (defn nice-article [article]
-  (-> (select-keys article [:slug :title :description :body :createdAt :updatedAt :favoritesCount :favorited])
+  (-> (select-keys article [:slug :title :description :body :createdAt :updatedAt :favoritesCount :favorited :tag])
       (assoc :author (select-keys article [:username :bio :image :following]))
       (update-in [:author :following] boolean)
       (update :favorited boolean)
+      (update :tagList #(if % 
+                          (str/split "," %)
+                          []))
       (update :createdAt #(Date. %))
       (update :updatedAt #(Date. %))))
 
@@ -46,17 +49,21 @@
 (defn get-article-feed [conn user-id {:keys [limit offset]
                                       :or {limit 20
                                            offset 0}}]
+  (let [sql (-> article-base
+                (with-user user-id)
+                (hs/where [:and [:= :uf.followingUserId :a.author]
+                          [:= :uf.userId user-id]])
+                (hs/order-by [:createdAt :desc])
+                (hs/limit limit)
+                (hs/offset offset))]
   {:articles
    (into [] (map nice-article) 
-        (jdbc/plan conn (-> article-base
-                            (with-user user-id)
-                            (hs/where [:and [:= :uf.followingUserId :a.author]
-                                            [:= :uf.userId user-id]])
-                            (hs/order-by [:createdAt :desc])
-                            (hs/limit limit)
-                            (hs/offset offset)
-                            (h/format))
-                   {:builder-fn rs/as-unqualified-maps}))})
+         (jdbc/plan conn (h/format sql)
+                    {:builder-fn rs/as-unqualified-maps}))
+   :articlesCount (-> (jdbc/execute-one! conn (-> sql
+                                                  (hs/select :%count.1)
+                                                  (h/format)))
+                      vals first)}))
 
 (defn find-articles [conn user-id {:keys [limit offset tag author favorited]
                                    :or {limit 20
@@ -76,18 +83,22 @@
                                                   :where [:= :filter_fav.articleId :a.id]}])
               true (hs/order-by [:createdAt :desc])
               limit (hs/limit limit)
-              offset (hs/offset offset)
-              true (h/format))]
+              offset (hs/offset offset))]
     {:articles
-     (->> (jdbc/plan conn sql
+     (->> (jdbc/plan conn (h/format sql)
                      {:builder-fn rs/as-unqualified-maps})
-          (into [] (map nice-article)))}))
+          (into [] (map nice-article)))
+     :articlesCount (-> (jdbc/execute-one! conn (-> sql
+                                                    (hs/select :%count.1)
+                                                    (h/format)))
+                        vals first)}))
 
 (defn create-article-tx [article]
   (let [new-article 
         (-> article
             (select-keys [:title :description :body :author])
             (assoc :slug (str/uslug (:title article))
+                   :tagList (str/join "," (or (:tagList article) []))
                    :createdAt (Date.)
                    :updatedAt (Date.)))]
     (fn [conn]
@@ -98,15 +109,18 @@
         (get-article-by-slug conn (:slug new-article) (:author new-article))))))
 
 (defn update-article-tx [article]
+  (prn article)
   (let [existing (select-keys article [:slug :author])
         update-article
-        (-> article
-            (select-keys [:title :description :body])
-            (assoc :slug (str/uslug (:title article))
-                   :updatedAt (Date.)))]
+        (cond-> (select-keys article [:title :description :body])
+          (:title article)
+          (assoc :slug (str/uslug (:title article)))
+          true (assoc :updatedAt (Date.)))]
     (fn [conn]
       (sql/update! conn :article update-article existing)
-      (get-article-by-slug conn (:slug update-article) (:author existing)))))
+      (get-article-by-slug conn 
+                           (or (:slug update-article) (:slug article)) 
+                           (:author existing)))))
 
 (defn delete-article-tx [article-slug user-id]
   (fn [conn]

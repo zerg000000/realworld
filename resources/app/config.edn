@@ -10,11 +10,13 @@
    :executor :none}
   :opinionated.components.web/routes {:db #ig/ref :opinionated.components.db/read
                                       :jwt #ig/ref :opinionated.components.auth/backend
-                                      :executor #ig/ref :opinionated.components.executors/execute}
+                                      :execute-pool #ig/ref :opinionated.components.executors/execute
+                                      :wait-pool #ig/ref :opinionated.components.executors/wait}
   :opinionated.components.web/router {:routes #ig/ref :opinionated.components.web/routes}
   
   ; worker executor
-  :opinionated.components.executors/execute {}
+  :opinionated.components.executors/execute {:num-threads 4}
+  :opinionated.components.executors/wait {}
   
   ; auth
   :opinionated.components.auth/backend {:secret #duct/env "JWT_SECRET"}
@@ -38,7 +40,7 @@
    :down ["DROP TABLE user_following;"
           "DROP TABLE user;"]}
   [:duct.migrator.ragtime/sql :opinionated.migration/create-article-tables]
-  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL, favoritesCount INTEGER DEFAULT 0, UNIQUE(slug));"
+  {:up ["CREATE TABLE article (id INTEGER PRIMARY KEY, slug TEXT NOT NULL, title TEXT NOT NULL, description TEXT, body TEXT, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL, favoritesCount INTEGER DEFAULT 0, tagList TEXT, UNIQUE(slug));"
         "CREATE TABLE article_tag (id INTEGER PRIMARY KEY, articleId INTEGER, tag TEXT NOT NULL);"
         "CREATE TABLE article_favorite (id INTEGER PRIMARY KEY, articleId INTEGER NOT NULL, userId INTEGER NOT NULL, UNIQUE(articleId, userId));"]
    :down ["DROP TABLE article_favorite;"

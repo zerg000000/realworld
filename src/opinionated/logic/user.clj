@@ -22,8 +22,8 @@
 
 (defn get-full-user [conn jwt id]
   (-> (sql/get-by-id conn :user id {:builder-fn rs/as-unqualified-maps})
-      (dissoc :password)
-      (assoc :token (jwt/sign {:user id} (:secret jwt)))))
+       (dissoc :password)
+       (assoc :token (jwt/sign {:user id} (:secret jwt)))))
 
 (defn get-full-user-by-name [conn username id]
   (when-let [user (jdbc/execute-one! conn
@@ -67,7 +67,7 @@
                           (userId, followingUserId) 
                           VALUES (?, (SELECT id FROM user WHERE username = ? LIMIT 1))" 
                          user-id following-username])
-    (get-full-user-by-name conn following-username user-id)))
+    {:profile (get-full-user-by-name conn following-username user-id)}))
 
 (defn unfollow-tx [user-id following-username]
   (fn [conn]
@@ -75,7 +75,7 @@
                            WHERE userId = ? 
                              AND followingUserId in (SELECT id FROM user WHERE username = ?)"
                          user-id following-username])
-    (get-full-user-by-name conn following-username user-id)))
+    {:profile (get-full-user-by-name conn following-username user-id)}))
 
 (s/fdef register-tx
   :args (s/cat :user ::register)
