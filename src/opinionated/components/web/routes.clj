@@ -9,7 +9,8 @@
             [buddy.auth.middleware :refer [authentication-request]]
             [buddy.auth :refer [authenticated?]] 
             [opinionated.logic.user :as user]
-            [opinionated.logic.article :as article]))
+            [opinionated.logic.article :as article]
+            [opinionated.logic.comment :as comment]))
 
 (defn ok-fn [user]
   {:status 200
@@ -125,9 +126,22 @@
                                            {slug :slug} :path-params}
                           (article/delete-article db slug user))
                         protected-middlware)}]
-       ["/comments" {:get status-ok
-                     :post status-ok}
-        ["/:id" {:delete status-ok}]]
+       ["/comments"
+        ["" {:get (-> (run options [db] {{user :user}       :identity
+                                         {slug :slug}       :path-params}
+                           (comment/get-comment db slug user))
+                      (wrap-json-format-req executor)
+                      protected-middlware)
+             :post (-> (run options [db] {{user :user}       :identity
+                                          {slug :slug}       :path-params
+                                          {comment :comment} :body}
+                            (comment/add-comment db slug comment user))
+                       (wrap-json-format-req executor)
+                       protected-middlware)}]
+        ["/:id" {:delete (-> (run options [db] {{user :user}       :identity
+                                                {comment-id :id}   :path-params}
+                                (comment/delete-comment db comment-id user))
+                             protected-middlware)}]]
        ["/favorite" {:post (-> (run options [db] {{user :user} :identity
                                                   {slug :slug} :path-params}
                                  (article/favorite db slug user))

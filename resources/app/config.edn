@@ -45,7 +45,7 @@
           "DROP TABLE article_tag;"
           "DROP TABLE article;"]}
   [:duct.migrator.ragtime/sql :opinionated.migration/create-comment-tables]
-  {:up ["CREATE TABLE article_comment (id INTEGER PRIMARY KEY, articleId INTEGER, body TEXT NOT NULL, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, author INTEGER NOT NULL);"]
+  {:up ["CREATE TABLE article_comment (id INTEGER PRIMARY KEY, articleId INTEGER, body TEXT NOT NULL, createdAt TIMESTAMP NOT NULL, updatedAt TIMESTAMP NOT NULL, commenter INTEGER NOT NULL);"]
    :down ["DROP TABLE article_comment;"]}}
  :duct.profile/dev   #duct/include "dev"
  :duct.profile/local #duct/include "local"
