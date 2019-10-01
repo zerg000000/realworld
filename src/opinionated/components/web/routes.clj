@@ -68,13 +68,12 @@
     (fn error-response [req]
       (d/catch' (h req)
                 (fn error-handler [error]
-                  (.printStackTrace error)
-                  #(d/future-with pool
-                  {:status 400
-                   :body  
-                   (json/write-value-as-bytes
-                     {:errors {:body [(.getMessage error)]}}
-                     mapper)}))))))
+                  (d/future-with pool
+                    {:status 400
+                     :body
+                     (json/write-value-as-bytes
+                       {:errors {:body [(.getMessage error)]}}
+                       mapper)}))))))
 
 (defmacro run [context bindings destructure-pattern & body]
   `(let [pool# (:wait-pool ~context)
@@ -100,23 +99,23 @@
     ["/api"
      ["/articles"
       ["" {:get (-> (run ctx [db] {{user :user} :identity
-                                        args         :query-params}
+                                   args         :query-params}
                           (article/get-articles db user args))
                      (wrap-params)
                      optional-mw)
            :post (-> (run ctx [db] {{article :article} :body
-                                        {user :user} :identity}
+                                    {user :user} :identity}
                        (article/create-article db (assoc article :author user)))
                      (wrap-json-format-req execute-pool)
                      protected-middlware)}]
       ["/feed" {:get (-> (run ctx [db] {{user :user} :identity
-                                            args         :query-params}
+                                        args         :query-params}
                           (article/get-feed db user args))
                          (wrap-params)
                          protected-middlware)}]
       ["/:slug"
        ["" {:get (-> (run ctx [db] {{user :user} :identity
-                                        {slug :slug} :path-params}
+                                    {slug :slug} :path-params}
                        (article/get-by-slug db slug user))
                      optional-mw)
             :put (-> (run ctx [db] {{user :user} :identity
@@ -128,31 +127,31 @@
                      (wrap-json-format-req execute-pool)
                      protected-middlware)
             :delete (-> (run ctx [db] {{user :user} :identity
-                                           {slug :slug} :path-params}
+                                       {slug :slug} :path-params}
                           (article/delete-article db slug user))
                         protected-middlware)}]
        ["/comments"
         ["" {:get (-> (run ctx [db] {{user :user}       :identity
-                                         {slug :slug}       :path-params}
+                                     {slug :slug}       :path-params}
                            (comment/get-comment db slug user))
                       (wrap-json-format-req execute-pool)
                       optional-mw)
              :post (-> (run ctx [db] {{user :user}       :identity
-                                          {slug :slug}       :path-params
-                                          {comment :comment} :body}
+                                      {slug :slug}       :path-params
+                                      {comment :comment} :body}
                             (comment/add-comment db slug comment user))
                        (wrap-json-format-req execute-pool)
                        protected-middlware)}]
         ["/:id" {:delete (-> (run ctx [db] {{user :user}       :identity
-                                                {comment-id :id}   :path-params}
+                                            {comment-id :id}   :path-params}
                                 (comment/delete-comment db comment-id user))
                              protected-middlware)}]]
        ["/favorite" {:post (-> (run ctx [db] {{user :user} :identity
-                                                  {slug :slug} :path-params}
+                                              {slug :slug} :path-params}
                                  (article/favorite db slug user))
                                protected-middlware)
                      :delete (-> (run ctx [db] {{user :user} :identity
-                                                    {slug :slug} :path-params}
+                                                {slug :slug} :path-params}
                                   (article/unfavorite db slug user))
                                  protected-middlware)}]]]
      ["/tags" {:get (-> (run ctx [db] _
@@ -160,15 +159,15 @@
                         base-mw)}]
      ["/profiles/:username"
       ["" {:get (-> (run ctx [db] {{user :user} :identity
-                                       {username :username} :path-params}
+                                   {username :username} :path-params}
                       {:profile (user/get-user-by-name db username user)})
                     optional-mw)}]
       ["/follow" {:post (-> (run ctx [db] {{user :user} :identity
-                                               {username :username} :path-params}
+                                           {username :username} :path-params}
                               (user/follow db user username))
                             protected-middlware)
                   :delete (-> (run ctx [db] {{user :user} :identity
-                                                 {username :username} :path-params}
+                                             {username :username} :path-params}
                                 (user/unfollow db user username))
                               protected-middlware)}]]
      ["/user" {:get (-> (run ctx [db jwt] {{user :user} :identity}
@@ -183,11 +182,11 @@
      ["/users"
       ["" {:post (-> (run ctx [db jwt] {:keys [user]} 
                         (user/register db jwt user))
-                     ;(wrap-spec-validate :opinionated.logic.user/register)
+                     (wrap-spec-validate :opinionated.logic.user/register)
                      (wrap-json-format execute-pool)
                      base-mw)}]
       ["/login" {:post (-> (run ctx [db jwt] {:keys [user]} 
                                 (user/login db jwt user))
-                           ;(wrap-spec-validate :opinionated.logic.user/login)
+                           (wrap-spec-validate :opinionated.logic.user/login)
                            (wrap-json-format execute-pool)
                            base-mw)}]]]))

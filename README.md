@@ -1,11 +1,11 @@
 # Opinionated Real World 
 
-An extermely opinionated project template that is useful for kickstarting modern Clojure web project. Also, it implemented Real World Backend for demo.
+An extermely opinionated project template that is useful for kickstarting modern Clojure web project. Also, it implemented RealWorld Backend for demo.
 
 ## What's included
 
 * REPL setup
-* Graphql setup
+* RESTful setup
 * JDBC setup 
 * CI/CD setup
 * Real World as an example

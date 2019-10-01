@@ -1,0 +1,24 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: circleci/clojure:tools-deps
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-m2-{{ checksum "deps.edn" }}
+            - v1-m2-
+      - run: bin/kaocha
+      - save_cache:
+            key: v1-m2-{{ checksum "deps.edn" }}
+            paths:
+              - ~/.m2
+              - ~/.gitlibs
+              - .cpcache
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test

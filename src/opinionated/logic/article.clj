@@ -109,7 +109,6 @@
         (get-article-by-slug conn (:slug new-article) (:author new-article))))))
 
 (defn update-article-tx [article]
-  (prn article)
   (let [existing (select-keys article [:slug :author])
         update-article
         (cond-> (select-keys article [:title :description :body])

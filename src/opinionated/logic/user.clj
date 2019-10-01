@@ -50,7 +50,7 @@
 (defn register-tx [user jwt]
   (fn [conn]
     (let [id (-> (sql/insert! conn :user (-> (select-keys user [:email :password :username :bio :image])
-                                             (update :password hashers/derive))) 
+                                             (update :password hashers/derive {:alg :pbkdf2+sha1}))) 
                  vals first)]
       {:user (get-full-user conn jwt id)})))
 

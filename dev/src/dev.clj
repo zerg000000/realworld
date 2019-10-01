@@ -56,7 +56,7 @@
       :datasource))
 
 (defn q 
-  "query current db. e.g. (q [\"select top 10 * from table where id = ?\" 1])"
+  "execute with current db. e.g. (q [\"select top 10 * from table where id = ?\" 1])"
   [query]
   (datafy (jdbc/execute! (db) query)))
 
@@ -67,5 +67,4 @@
 
 (comment
   (reset)
-  (doseq [jj (range 10000)] (i :user {:user_secret "is_secret"}))
   (q ["SELECT * from user"]))

@@ -15,4 +15,5 @@
     (http/router routes {:conflicts nil})
     (ring/create-default-handler)
     {:executor reitit.interceptor.sieppari/executor
-     :inject-match? false}))
+     :inject-match? false
+     :inject-router? false}))
