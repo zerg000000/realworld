@@ -1,1 +1,2 @@
-{:duct.profile/test [:duct/profile]}
+{:opinionated.components.web/server [:duct/daemon]
+ :duct.profile/test [:duct/profile]}

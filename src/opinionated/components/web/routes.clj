@@ -56,7 +56,7 @@
   (fn spec-validate [ent]
     (if (s/valid? spec ent)
       (h ent)
-      (d/error-deferred (ex-info "Validation Failed" (s/explain-data spec ent))))))
+      (d/error-deferred (ex-info "Invalid Form Input" (s/explain-data spec ent))))))
 
 (defn wrap-ok-response [h pool]
   (let [mapper (json/object-mapper {:date-format "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"})]
@@ -160,7 +160,7 @@
      ["/profiles/:username"
       ["" {:get (-> (run ctx [db] {{user :user} :identity
                                    {username :username} :path-params}
-                      {:profile (user/get-user-by-name db username user)})
+                      (user/get-user-by-name db username user))
                     optional-mw)}]
       ["/follow" {:post (-> (run ctx [db] {{user :user} :identity
                                            {username :username} :path-params}
@@ -171,7 +171,7 @@
                                 (user/unfollow db user username))
                               protected-middlware)}]]
      ["/user" {:get (-> (run ctx [db jwt] {{user :user} :identity}
-                          {:user (user/get-user db jwt user)})
+                          (user/get-user db jwt user))
                         protected-middlware)
                :put (-> (run ctx [db jwt] {{user :user}      :identity
                                            {user-info :user} :body}
@@ -182,11 +182,11 @@
      ["/users"
       ["" {:post (-> (run ctx [db jwt] {:keys [user]} 
                         (user/register db jwt user))
-                     (wrap-spec-validate :opinionated.logic.user/register)
+                     (wrap-spec-validate :opinionated.logic.user/register-form)
                      (wrap-json-format execute-pool)
                      base-mw)}]
       ["/login" {:post (-> (run ctx [db jwt] {:keys [user]} 
                                 (user/login db jwt user))
-                           (wrap-spec-validate :opinionated.logic.user/login)
+                           (wrap-spec-validate :opinionated.logic.user/login-form)
                            (wrap-json-format execute-pool)
                            base-mw)}]]]))

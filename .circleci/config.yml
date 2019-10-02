@@ -16,9 +16,40 @@ jobs:
               - ~/.m2
               - ~/.gitlibs
               - .cpcache
+  api-test:
+    docker:
+      - image: circleci/clojure:tools-deps
+    environment:
+      JDBC_READ_URL: "jdbc:sqlite:dev.sqlite"
+      JDBC_WRITE_URL: "jdbc:sqlite:dev.sqlite"
+      JWT_SECRET: "secret"
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-m2-{{ checksum "deps.edn" }}
+            - v1-m2-
+      - run: 
+          name: "Migrate DB"
+          background: true
+          command:  clojure -m opinionated.main :duct/migrator
+      - run: 
+          name: "Start App"
+          background: true
+          command:  clojure -m opinionated.main
+      - run: git clone https://github.com/gothinkster/realworld.git
+      - run: cd realworld/api
+      - run: APIURL=http://localhost:3000/api ./run-api-tests.sh
+      - save_cache:
+            key: v1-m2-{{ checksum "deps.edn" }}
+            paths:
+              - ~/.m2
+              - ~/.gitlibs
+              - .cpcache
 
 workflows:
   version: 2
   test:
     jobs:
       - test
+      - api-test
