@@ -18,7 +18,7 @@ jobs:
               - .cpcache
   api-test:
     docker:
-      - image: circleci/clojure:tools-deps
+      - image: circleci/clojure:tools-deps-node
     environment:
       JDBC_READ_URL: "jdbc:sqlite:dev.sqlite"
       JDBC_WRITE_URL: "jdbc:sqlite:dev.sqlite"
