@@ -24,4 +24,5 @@
                                nrepl/nrepl {:mvn/version "0.6.0"}}}
            
            :test {:extra-paths ["test/src" "test/resources"]
-                  :extra-deps {lambdaisland/kaocha {:mvn/version "0.0-418"}}}}}
+                  :extra-deps {lambdaisland/kaocha {:mvn/version "0.0-418"}
+                               org.clojure/test.check {:mvn/version "0.10.0"}}}}}
