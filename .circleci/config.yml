@@ -31,15 +31,13 @@ jobs:
             - v1-m2-
       - run: 
           name: "Migrate DB"
-          background: true
           command:  clojure -m opinionated.main :duct/migrator
       - run: 
           name: "Start App"
           background: true
           command:  clojure -m opinionated.main
       - run: git clone https://github.com/gothinkster/realworld.git
-      - run: cd realworld/api
-      - run: APIURL=http://localhost:3000/api ./run-api-tests.sh
+      - run: APIURL=http://localhost:3000/api ./realworld/api/run-api-tests.sh
       - save_cache:
             key: v1-m2-{{ checksum "deps.edn" }}
             paths:
