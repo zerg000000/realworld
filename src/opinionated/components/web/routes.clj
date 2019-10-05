@@ -1,13 +1,7 @@
 (ns opinionated.components.web.routes
   (:require [integrant.core :as ig]
-            [jsonista.core :as json]
             [manifold.deferred :as d]
-            [manifold.executor :as ex]
             [clojure.spec.alpha :as s]
-            [muuntaja.interceptor]
-            [ring.middleware.params :as params]
-            [clojure.walk :as w]
-            [buddy.auth.middleware :refer [authentication-request]]
             [buddy.auth :refer [authenticated?]] 
             [opinionated.logic.user :as user]
             [opinionated.logic.article :as article]
@@ -25,6 +19,14 @@
       (h ent)
       (d/error-deferred (ex-info "Invalid Form Input" (s/explain-data spec ent))))))
 
+(defn ok-response [body]
+  {:status 200
+   :body body})
+
+(defn error-response [error]
+  {:status 400
+   :body {:errors {:body [(.getMessage error)]}}})
+
 (defmacro run [context bindings destructure-pattern & body]
   `(let [pool# (:wait-pool ~context)
          {:keys [~@bindings]} ~context]
@@ -32,12 +34,8 @@
        (-> (d/future-with pool#
                           (let [~destructure-pattern req#]
                             (do ~@body)))
-           (d/chain' (fn [b#]
-                       {:status 200
-                        :body b#}))
-           (d/catch' (fn [error#]
-                       {:status 400
-                        :body {:errors {:body [(.getMessage error#)]}}}))))))
+           (d/chain' ok-response
+           (d/catch' error-response))))))
 
 (defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [execute-pool jwt] :as ctx}]
   ["/api"
