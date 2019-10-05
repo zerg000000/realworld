@@ -10,7 +10,14 @@ An extermely opinionated project template that is useful for kickstarting modern
 * RESTful setup
 * JDBC setup 
 * CI/CD setup
+* Unit Test
 * Real World as an example
+
+## Not Yet Done
+
+* Validation
+* Unit Test
+* Documentation
 
 ## Non-goal
 

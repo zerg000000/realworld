@@ -13,12 +13,6 @@
               (assoc ctx :queue [] :response {:status 401 :body "Unauthorized"})
               ctx))})
 
-(defn wrap-spec-validate [h spec]
-  (fn spec-validate [ent]
-    (if (s/valid? spec ent)
-      (h ent)
-      (d/error-deferred (ex-info "Invalid Form Input" (s/explain-data spec ent))))))
-
 (defn ok-response [body]
   {:status 200
    :body body})
@@ -27,15 +21,30 @@
   {:status 400
    :body {:errors {:body [(.getMessage error)]}}})
 
-(defmacro run [context bindings destructure-pattern & body]
-  `(let [pool# (:wait-pool ~context)
-         {:keys [~@bindings]} ~context]
-     (fn [req#]
-       (-> (d/future-with pool#
-                          (let [~destructure-pattern req#]
-                            (do ~@body)))
-           (d/chain' ok-response)
-           (d/catch' error-response)))))
+(defn not-exists-in-map [context names]
+  (->> names
+       (map name)
+       (map keyword)
+       (filterv (fn [n]
+                  (nil? (n context))))
+       seq))
+
+(defmacro run
+  "A helper that help make things a bit more concise. 
+   1. Wrap the handler into d/future
+   2. Pick related services from context
+   3. Add normal/exception response handling"
+  [context bindings destructure-pattern & body]
+  `(do (when-let [missed-bindings# (not-exists-in-map ~context '~bindings)]
+         (throw (ex-info (str "Missing binding " missed-bindings#) {})))
+       (let [pool# (:wait-pool ~context)
+             {:keys [~@bindings]} ~context]
+         (fn [req#]
+           (-> (d/future-with pool#
+                              (let [~destructure-pattern req#]
+                                (do ~@body)))
+               (d/chain' ok-response)
+               (d/catch' error-response))))))
 
 (defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [execute-pool jwt] :as ctx}]
   ["/api"
