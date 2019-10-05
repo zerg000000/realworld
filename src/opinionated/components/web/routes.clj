@@ -34,8 +34,8 @@
        (-> (d/future-with pool#
                           (let [~destructure-pattern req#]
                             (do ~@body)))
-           (d/chain' ok-response
-           (d/catch' error-response))))))
+           (d/chain' ok-response)
+           (d/catch' error-response)))))
 
 (defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [execute-pool jwt] :as ctx}]
   ["/api"

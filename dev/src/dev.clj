@@ -12,7 +12,6 @@
    [clojure.spec.alpha :as s]
    [clojure.spec.test.alpha :as st]
    [expound.alpha :as expound]
-   #_[com.walmartlabs.lacinia.expound]
    ; useful namespace
    [next.jdbc :as jdbc]
    [next.jdbc.sql :as sql]
