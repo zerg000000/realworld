@@ -1,5 +1,7 @@
 # Opinionated Real World 
 
+[![CircleCI](https://circleci.com/gh/zerg000000/realworld.svg?style=svg)](https://circleci.com/gh/zerg000000/realworld)
+
 An extermely opinionated project template that is useful for kickstarting modern Clojure web project. Also, it implemented RealWorld Backend for demo.
 
 ## What's included

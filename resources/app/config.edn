@@ -12,7 +12,8 @@
                                       :jwt #ig/ref :opinionated.components.auth/backend
                                       :execute-pool #ig/ref :opinionated.components.executors/execute
                                       :wait-pool #ig/ref :opinionated.components.executors/wait}
-  :opinionated.components.web/router {:routes #ig/ref :opinionated.components.web/routes}
+  :opinionated.components.web/router {:routes #ig/ref :opinionated.components.web/routes
+                                      :jwt #ig/ref :opinionated.components.auth/backend}
   
   ; worker executor
   :opinionated.components.executors/execute {:num-threads 4}
