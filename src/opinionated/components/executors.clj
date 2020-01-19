@@ -7,6 +7,3 @@
 
 (defmethod ig/halt-key! :opinionated.components.executors/execute [_ executor]
   (.shutdown executor))
-
-(defmethod ig/init-key :opinionated.components.executors/wait [_ _]
-  (ex/wait-pool))

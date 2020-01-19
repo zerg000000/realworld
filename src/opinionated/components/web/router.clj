@@ -5,7 +5,6 @@
             [buddy.auth.middleware :refer [authentication-request]]
             [reitit.interceptor.sieppari]
             [reitit.http.interceptors.parameters :as parameters]
-            [jsonista.core :as json]
             [muuntaja.core :as m]
             [muuntaja.interceptor]))
 

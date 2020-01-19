@@ -10,14 +10,12 @@
    :executor :none}
   :opinionated.components.web/routes {:db #ig/ref :opinionated.components.db/read
                                       :jwt #ig/ref :opinionated.components.auth/backend
-                                      :execute-pool #ig/ref :opinionated.components.executors/execute
-                                      :wait-pool #ig/ref :opinionated.components.executors/wait}
+                                      :execute-pool #ig/ref :opinionated.components.executors/execute}
   :opinionated.components.web/router {:routes #ig/ref :opinionated.components.web/routes
                                       :jwt #ig/ref :opinionated.components.auth/backend}
   
   ; worker executor
-  :opinionated.components.executors/execute {:num-threads 4}
-  :opinionated.components.executors/wait {}
+  :opinionated.components.executors/execute {:num-threads 20}
   
   ; auth
   :opinionated.components.auth/backend {:secret #duct/env "JWT_SECRET"}

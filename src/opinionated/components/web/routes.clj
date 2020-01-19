@@ -37,7 +37,7 @@
   [context bindings destructure-pattern & body]
   `(do (when-let [missed-bindings# (not-exists-in-map ~context '~bindings)]
          (throw (ex-info (str "Missing binding " missed-bindings#) {})))
-       (let [pool# (:wait-pool ~context)
+       (let [pool# (:execute-pool ~context)
              {:keys [~@bindings]} ~context]
          (fn [req#]
            (-> (d/future-with pool#
@@ -46,7 +46,7 @@
                (d/chain' ok-response)
                (d/catch' error-response))))))
 
-(defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [execute-pool jwt] :as ctx}]
+(defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [jwt] :as ctx}]
   ["/api"
    ["/articles"
     ["" {:get (run ctx [db] {{user :user} :identity
