@@ -1,7 +1,7 @@
 (ns opinionated.components.web.routes
   (:require [integrant.core :as ig]
-            [manifold.deferred :as d]
             [clojure.spec.alpha :as s]
+            [promesa.core :as p]
             [buddy.auth :refer [authenticated?]]
             [opinionated.logic.user :as user]
             [opinionated.logic.article :as article]
@@ -31,20 +31,18 @@
 
 (defmacro run
   "A helper that help make things a bit more concise. 
-   1. Wrap the handler into d/future
+   1. Wrap the handler into p/future
    2. Pick related services from context
    3. Add normal/exception response handling"
   [context bindings destructure-pattern & body]
   `(do (when-let [missed-bindings# (not-exists-in-map ~context '~bindings)]
          (throw (ex-info (str "Missing binding " missed-bindings#) {})))
-       (let [pool# (:execute-pool ~context)
-             {:keys [~@bindings]} ~context]
+       (let [{:keys [~@bindings]} ~context]
          (fn [req#]
-           (-> (d/future-with pool#
-                              (let [~destructure-pattern req#]
-                                (do ~@body)))
-               (d/chain' ok-response)
-               (d/catch' error-response))))))
+           (-> (p/future (let [~destructure-pattern req#]
+                           (do ~@body)))
+               (p/chain' ok-response)
+               (p/catch' error-response))))))
 
 (defmethod ig/init-key :opinionated.components.web/routes [_ {:keys [jwt] :as ctx}]
   ["/api"

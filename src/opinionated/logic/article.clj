@@ -52,18 +52,18 @@
   (let [sql (-> article-base
                 (with-user user-id)
                 (hs/where [:and [:= :uf.followingUserId :a.author]
-                          [:= :uf.userId user-id]])
+                                [:= :uf.userId user-id]])
                 (hs/order-by [:createdAt :desc])
                 (hs/limit limit)
                 (hs/offset offset))]
-  {:articles
-   (into [] (map nice-article) 
-         (jdbc/plan conn (h/format sql)
-                    {:builder-fn rs/as-unqualified-maps}))
-   :articlesCount (-> (jdbc/execute-one! conn (-> sql
-                                                  (hs/select :%count.1)
-                                                  (h/format)))
-                      vals first)}))
+    {:articles
+     (into [] (map nice-article)
+           (jdbc/plan conn (h/format sql)
+                      {:builder-fn rs/as-unqualified-maps}))
+     :articlesCount (-> (jdbc/execute-one! conn (-> sql
+                                                    (hs/select :%count.1)
+                                                    (h/format)))
+                        vals first)}))
 
 (defn find-articles [conn user-id {:keys [limit offset tag author favorited]
                                    :or {limit 20
@@ -138,7 +138,7 @@
     (jdbc/execute-one! conn ["INSERT INTO article_favorite 
                           (userId, articleId) 
                           VALUES (?, (SELECT id FROM article WHERE slug = ? LIMIT 1))"
-                         user-id article-slug])
+                             user-id article-slug])
     (jdbc/execute-one! conn ["UPDATE article SET favoritesCount = favoritesCount + 1 WHERE slug = ?" article-slug])
     (get-article-by-slug conn article-slug user-id)))
 
