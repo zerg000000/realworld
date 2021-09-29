@@ -1,10 +1,11 @@
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"}
         ; core framework
         duct/core {:mvn/version "0.7.0"}
         duct/module.logging {:mvn/version "0.4.0"}
         ; web
-        aleph {:mvn/version "0.4.7-alpha5"}
+        com.appsflyer/donkey {:mvn/version "0.5.1"}
+        funcool/promesa {:mvn/version "6.0.2"}
         metosin/reitit {:mvn/version "0.3.9"}
         ; auth
         buddy/buddy-hashers {:mvn/version "1.4.0"}

@@ -5,18 +5,17 @@
   ; web server
   :opinionated.components.web/server
   {:port    3000
-   :handler #ig/ref :opinionated.components.web/router
-   :logger #ig/ref :duct/logger
-   :executor :none}
+   :routes [{:handler #ig/ref :opinionated.components.web/router
+             :handler-mode :blocking}]
+   :donkey #ig/ref :opinionated.components.web/donkey
+   :logger #ig/ref :duct/logger}
   :opinionated.components.web/routes {:db #ig/ref :opinionated.components.db/read
-                                      :jwt #ig/ref :opinionated.components.auth/backend
-                                      :execute-pool #ig/ref :opinionated.components.executors/execute}
+                                      :jwt #ig/ref :opinionated.components.auth/backend}
   :opinionated.components.web/router {:routes #ig/ref :opinionated.components.web/routes
                                       :jwt #ig/ref :opinionated.components.auth/backend}
-  
-  ; worker executor
-  :opinionated.components.executors/execute {:num-threads 20}
-  
+
+  :opinionated.components.web/donkey {}
+
   ; auth
   :opinionated.components.auth/backend {:secret #duct/env "JWT_SECRET"}
   
